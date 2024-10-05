@@ -1,0 +1,52 @@
+local HomingRadius = 10 -- Adjust this for how strong the "curve" should be
+local MaxDistance = 500 -- Maximum range for locking onto targets
+local CurveSpeed = 50 -- Speed at which the projectile curves toward the target
+
+-- Detect when the player shoots a weapon (assuming a RemoteEvent or direct input)
+local function onPlayerShoot(projectile)
+    local localPlayer = game:GetService('Players').LocalPlayer
+    if not localPlayer then return end
+
+    -- Find the nearest target to lock onto
+    local closestPlayer, closestDistance = nil, MaxDistance
+    for _, player in pairs(game:GetService('Players'):GetPlayers()) do
+        if player ~= localPlayer and player.Character then
+            local head = player.Character:FindFirstChild("Head")
+            if head then
+                local distance = (head.Position - projectile.Position).Magnitude
+                if distance <= HomingRadius and distance < closestDistance then
+                    closestPlayer = player
+                    closestDistance = distance
+                end
+            end
+        end
+    end
+
+    -- If a valid target is found, curve the shot toward the target
+    if closestPlayer then
+        local targetHead = closestPlayer.Character:FindFirstChild("Head")
+        if targetHead then
+            -- Continuously adjust the projectile's direction towards the target
+            game:GetService('RunService').Heartbeat:Connect(function()
+                if projectile and projectile.Parent then
+                    -- Calculate the direction to the target
+                    local directionToTarget = (targetHead.Position - projectile.Position).Unit
+
+                    -- Smoothly adjust the velocity towards the target
+                    local currentVelocity = projectile.Velocity
+                    local adjustedVelocity = currentVelocity:Lerp(directionToTarget * currentVelocity.Magnitude, 0.1) -- Adjust lerp value for stronger curves
+
+                    -- Set the new velocity
+                    projectile.Velocity = adjustedVelocity
+                end
+            end)
+        end
+    end
+end
+
+-- Assuming the shoot event is fired from a RemoteEvent or user input
+game:GetService("ReplicatedStorage").ShootEvent.OnServerEvent:Connect(function(player, projectile)
+    onPlayerShoot(projectile)
+end)
+
+print("Curving shot script loaded!")
