@@ -1,46 +1,91 @@
--- Variables to keep track of the system
-local peekingActive = false -- Whether peeking is enabled
-local peekChance = 0.38 -- 38% chance to peek at the same time
+local peekingActive = false
+local peekChance = 0.45
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local userInputService = game:GetService("UserInputService")
+local runService = game:GetService("RunService")
+local players = game:GetService("Players")
+local mouse = player:GetMouse()
 
--- Function to check if peeking should occur
-local function checkPeeking()
-    -- Generate a random number between 0 and 1
-    local randomChance = math.random()
+local function isPlayerStandingStill()
+    return humanoid.MoveDirection.Magnitude == 0
+end
+
+local function isPlayerBehindCover()
+    local rayOrigin = character.Head.Position
+    local rayDirection = character.Head.CFrame.LookVector * 100
     
-    -- If the random chance is less than or equal to peekChance (0.38), peek at the same time
-    if randomChance <= peekChance then
-        print("Peeked at the same time as opponent!")
-        -- You can put your peeking logic here (e.g., trigger animations or camera movements)
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterDescendantsInstances = {character}
+    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+
+    local raycastResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
+    
+    if raycastResult and raycastResult.Instance then
+        return true
     else
-        print("Missed peeking.")
+        return false
     end
 end
 
--- Function to toggle the peeking feature
+local function getClosestPlayerToCursor()
+    local closestPlayer = nil
+    local shortestDistance = math.huge
+
+    for _, otherPlayer in pairs(players:GetPlayers()) do
+        if otherPlayer ~= player and otherPlayer.Character then
+            local otherCharacter = otherPlayer.Character
+            local head = otherCharacter:FindFirstChild("Head")
+            if head then
+                local screenPosition, onScreen = workspace.CurrentCamera:WorldToScreenPoint(head.Position)
+                if onScreen then
+                    local distance = (Vector2.new(screenPosition.X, screenPosition.Y) - Vector2.new(mouse.X, mouse.Y)).Magnitude
+                    if distance < shortestDistance then
+                        shortestDistance = distance
+                        closestPlayer = otherPlayer
+                    end
+                end
+            end
+        end
+    end
+
+    return closestPlayer
+end
+
+local function copyMovementFromPlayer(targetPlayer)
+    if targetPlayer and targetPlayer.Character then
+        local targetHumanoid = targetPlayer.Character:FindFirstChild("Humanoid")
+        local targetMoveDirection = targetHumanoid.MoveDirection
+        humanoid:Move(targetMoveDirection, true)
+    end
+end
+
+local function checkPeeking()
+    if isPlayerStandingStill() and isPlayerBehindCover() then
+        local randomChance = math.random()
+
+        if randomChance <= peekChance then
+            local closestPlayer = getClosestPlayerToCursor()
+            if closestPlayer then
+                copyMovementFromPlayer(closestPlayer)
+            end
+        end
+    end
+end
+
 local function togglePeeking()
-    peekingActive = not peekingActive -- Toggle the active state
-    if peekingActive then
-        print("Peeking is now activated.")
-    else
-        print("Peeking is now deactivated.")
-    end
+    peekingActive = not peekingActive
 end
 
--- Set up a keybind for pressing "R" to toggle the system
-game:GetService("UserInputService").InputBegan:Connect(function(input)
+userInputService.InputBegan:Connect(function(input)
     if input.KeyCode == Enum.KeyCode.R then
         togglePeeking()
     end
 end)
 
--- You can call this function when you want to trigger a peek-check (e.g., when an opponent peeks)
 local function opponentPeeks()
     if peekingActive then
-        checkPeeking() -- Check if the player peeks at the same time
-    else
-        print("Peeking is disabled.")
+        checkPeeking()
     end
 end
-
--- Example of triggering the opponent peek function (you can connect this to your game logic)
--- opponentPeeks() should be called whenever an opponent's peeking action happens in your game logic
