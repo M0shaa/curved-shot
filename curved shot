@@ -1,10 +1,7 @@
-local peekingActive = false
 local peekChance = 0.45
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
-local userInputService = game:GetService("UserInputService")
-local runService = game:GetService("RunService")
 local players = game:GetService("Players")
 local mouse = player:GetMouse()
 
@@ -74,18 +71,6 @@ local function checkPeeking()
     end
 end
 
-local function togglePeeking()
-    peekingActive = not peekingActive
-end
-
-userInputService.InputBegan:Connect(function(input)
-    if input.KeyCode == Enum.KeyCode.R then
-        togglePeeking()
-    end
-end)
-
 local function opponentPeeks()
-    if peekingActive then
-        checkPeeking()
-    end
+    checkPeeking()
 end
