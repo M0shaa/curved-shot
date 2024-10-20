@@ -1,44 +1,27 @@
-local player = game.Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-local camera = game.Workspace.CurrentCamera
+-- LocalScript placed in StarterPlayerScripts or StarterCharacterScripts
 
-local function findEnemy()
-    for _, enemy in pairs(game.Players:GetPlayers()) do
-        if enemy ~= player and enemy.Character and enemy.Character:FindFirstChild("HumanoidRootPart") then
-            return enemy.Character
-        end
-    end
-    return nil
-end
+local UserInputService = game:GetService("UserInputService")
+local wallbangEnabled = false  -- Initially disabled
 
-local function mimicEnemyMovement()
-    local enemy = findEnemy()
-    if not enemy then return end
+-- Function to toggle wallbang
+local function toggleWallbang()
+    wallbangEnabled = not wallbangEnabled  -- Toggle between true and false
 
-    local enemyPosition = enemy.HumanoidRootPart.Position
-    local distanceToEnemy = (humanoidRootPart.Position - enemyPosition).Magnitude
-
-    -- Move towards the enemy's position
-    humanoidRootPart.CFrame = CFrame.new(enemyPosition)
-
-    -- Check for peeking
-    local peekChance = math.random(1, 100) -- Get a random number between 1 and 100
-    if peekChance <= 51 then -- 51% chance to peek
-        -- Execute peeking behavior
-        local peekDirection = (camera.CFrame.LookVector).unit * 5 -- Adjust the peek distance
-        humanoidRootPart.CFrame = humanoidRootPart.CFrame * CFrame.new(peekDirection)
-        wait(0.2) -- Wait briefly to simulate the peek
-        humanoidRootPart.CFrame = CFrame.new(enemyPosition) -- Return to the enemy's position
-    end
-
-    -- Automatically shoot if within range
-    if distanceToEnemy < 5 then -- Adjust the distance threshold as needed
-        local tool = player.Backpack:FindFirstChild("Gun") or character:FindFirstChild("Gun")
-        if tool then
-            tool:Activate() -- Simulate shooting
-        end
+    if wallbangEnabled then
+        print("Wallbang Enabled")
+        -- Code to enable wallbang (allow shooting through walls)
+        -- You can modify projectiles, hit detection, or other relevant scripts here
+    else
+        print("Wallbang Disabled")
+        -- Code to disable wallbang (restore normal behavior)
     end
 end
 
-game:GetService("RunService").RenderStepped:Connect(mimicEnemyMovement)
+-- Listen for "C" key press
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed then  -- Ensure player input is not from UI
+        if input.KeyCode == Enum.KeyCode.C then
+            toggleWallbang()
+        end
+    end
+end)
